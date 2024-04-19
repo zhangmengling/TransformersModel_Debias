@@ -1,0 +1,17 @@
+{
+  "male": ["male", "males", "men", "man", "boy", "guy", "guys", "he", "him", "his", "gentleman", "gentlemen", "father", "grandfather",
+    "son", "dad", "boy", "masculine", "brother", "uncle", "nephew", "grandfather", "husband", "boyfriend", "fiancé", "fiance",
+    "groom", "groomsman", "actor", "king", "prince"],
+  "female": ["female", "females", "woman", "women", "womyn", "girl", "gal", "gals", "she", "her", "hers", "lass", "lasses", "diva",
+    "divas", "actress", "actresses", "lady", "mother", "grandmother", "sister", "daughter", "aunt", "niece", "wife",
+    "girlfriend", "fiancée", "fiancee", "bride", "bridesmaid", "hostess", "actress", "queen", "princess"],
+  "homosexual": ["homosexual", "gay", "lesbian", "bisexual", "transgender", "trans", "queer", "lgbt", "lgbtq", "nonbinary",
+    "same-sex oriented", "same-gender loving", "lgbtqia", "sapphic", "msm", "wsw"],
+  "christian": ["christian", "christians", "catholic", "christianity", "christ", "jesus christ", "christ-follower",
+  "disciple of christ", "follower of Jesus", "christian believer", "christian disciple"],
+  "muslim": ["muslim", "islam follower", "muslim believer", "moslem", "mu'min", "mohammedan", "islamite", "mooslim person",
+    "mussulman", "muhammedan", "momin", "mumin"],
+  "jewish": ["jewish", "jew", "jews", "jewry", "judaic person", "judaic people"],
+  "black": ["black","african", "african american", "blacks", "nigger"],
+  "white": ["white", "canadian", "white-racism", "caucasian"]
+}

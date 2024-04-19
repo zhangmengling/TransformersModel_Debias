@@ -1,0 +1,7 @@
+output/*
+results_causality/
+textual_data_output/
+tmp/
+little_test*
+results/
+models/*

@@ -1,0 +1,13 @@
+{
+    "epoch": 20,
+    "batch_size": 118,
+    "train_learning_rate": 0.001,
+    "target": "group",
+    "threshold": 0.05,
+    "gamma": 1.5,
+    "train_data": "dataset/IMDB/train.csv",
+    "test_data": "dataset/IMDB/test.csv",
+    "train_data_identity": "dataset/IMDB/train_identity.csv",
+    "test_data_identity": "dataset/IMDB/test_identity.csv",
+    "save_dir": "models/IMDB4/"
+}

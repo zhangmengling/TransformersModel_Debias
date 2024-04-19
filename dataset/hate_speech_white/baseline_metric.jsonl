@@ -1,0 +1,14 @@
+{
+  "baseline_metric_ind_train": 0.141135108,
+  "baseline_metric_group_train": 0.038769324,
+  "baseline_fpr_train": 0.05918619,
+  "baseline_fnr_train": 0.006885197,
+  "baseline_acc_train": 0.987453284,
+  "baseline_metric_ind_test": 0.196217494,
+  "baseline_metric_group_test": 0.07491376,
+  "baseline_fpr_test": 0.436363636,
+  "baseline_fnr_test": 0.040339703,
+  "baseline_acc_test": 0.912176892,
+  "unprivileged_label": 0,
+  "privileged_label": 1
+}

@@ -1,0 +1,11 @@
+{
+    "target": "group",
+    "threshold": 0.05,
+    "baseline_metrics": "dataset/hate_speech_online/reddit/baseline_metric.jsonl",
+    "save_dir": "models/hate_speech_online_reddit/",
+    "gamma": 1.0,
+    "epoch": 20,
+    "batch_size": 52,
+    "train_learning_rate": 0.001,
+    "do_get_baseline": "true"
+}

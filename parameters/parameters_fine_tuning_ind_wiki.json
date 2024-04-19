@@ -1,0 +1,13 @@
+{
+    "epoch": 20,
+    "batch_size": 161,
+    "train_learning_rate": 0.001,
+    "target": "individual",
+    "threshold": 0.07,
+    "gamma": 1,
+    "train_data": "dataset/wiki/train.csv",
+    "test_data": "dataset/wiki/test.csv",
+    "train_data_identity": "dataset/wiki/train_identity.csv",
+    "test_data_identity": "dataset/wiki/test_identity.csv",
+    "save_dir": "models/wiki/"
+}

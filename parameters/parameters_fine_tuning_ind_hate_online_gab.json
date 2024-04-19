@@ -1,0 +1,11 @@
+{
+    "target": "group",
+    "threshold": 0.1,
+    "baseline_metrics": "dataset/hate_speech_online/gab/baseline_metric.jsonl",
+    "save_dir": "models/hate_speech_online_gab_llama/",
+    "gamma": 1.0,
+    "epoch": 20,
+    "batch_size": 32,
+    "train_learning_rate": 0.001,
+    "do_get_baseline": "true"
+}

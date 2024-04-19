@@ -1,0 +1,14 @@
+{
+    "model_name_or_path": "./output/hate_speech_twitter_llama/",
+    "train_file": "dataset/hate_speech_twitter/train.csv",
+    "validation_file": "dataset/hate_speech_twitter/test.csv",
+    "test_file": "dataset/hate_speech_twitter/test.csv",
+    "cache_dir": "/root/autodl-tmp/mdzhang/tmp",
+    "max_seq_length": 128,
+    "per_device_train_batch_size": 32,
+    "learning_rate": 2e-5,
+    "num_train_epochs": 3,
+    "output_dir": "./output/test/",
+    "overwrite_output_dir": "true",
+    "fp16": "true"
+}

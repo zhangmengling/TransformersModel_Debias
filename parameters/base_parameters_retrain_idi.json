@@ -1,0 +1,15 @@
+{
+    "model_name_or_path": "bert-base-cased",
+    "train_file": "dataset/hate_speech_online/reddit/train_combine.csv",
+    "validation_file": "dataset/hate_speech_online/reddit/test.csv",
+    "test_file": "dataset/hate_speech_online/reddit/test.csv",
+    "do_train": "True",
+    "do_predict": "True",
+    "max_seq_length": 128,
+    "per_device_train_batch_size": 32,
+    "learning_rate": 2e-5,
+    "num_train_epochs": 3,
+    "output_dir": "./output/hate_speech_online_reddit_retrain_all/",
+    "overwrite_output_dir": "true",
+    "fp16": "true"
+}

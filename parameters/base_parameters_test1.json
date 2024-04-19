@@ -1,0 +1,19 @@
+{
+    "model_name_or_path": "meta-llama/Llama-2-7b-hf",
+    "train_file": "dataset/hate_speech_online/reddit/train.csv",
+    "validation_file": "dataset/hate_speech_online/reddit/test.csv",
+    "test_file": "dataset/hate_speech_online/reddit/test.csv",
+    "cache_dir": "/root/autodl-tmp/mdzhang/tmp",
+    "do_train": "True",
+    "do_predict": "True",
+    "max_seq_length": 128,
+    "per_device_train_batch_size": 32,
+    "per_device_eval_batch_size": 32,
+    "learning_rate": 2e-5,
+    "num_train_epochs": 3,
+    "output_dir": "./output/hate_speech_online_reddit_llama/",
+    "overwrite_output_dir": "true",
+    "optim": "paged_adamw_32bit",
+    "save_steps": 25,
+    "logging_steps": 25
+}

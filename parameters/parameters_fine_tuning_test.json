@@ -3,7 +3,7 @@
     "threshold": 0.05,
     "baseline_metrics": "dataset/hate_speech_white/baseline_metric_llama.jsonl",
     "save_dir": "models/hate_speech_white_llama/",
-    "gamma": [0.1, 0.2, 0.3, 0.4, 0.5],
+    "gamma": [0.6, 0.7, 0.8, 0.9, 1.0],
     "epoch": 5,
     "batch_size": 98,
     "train_learning_rate": 0.001,

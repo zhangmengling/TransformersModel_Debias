@@ -6,3 +6,4 @@ little_test*
 results/
 models/*
 debias_dataset_identity.csv
+nohup.out

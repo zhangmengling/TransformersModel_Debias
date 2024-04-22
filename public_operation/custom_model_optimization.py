@@ -127,6 +127,9 @@ class Optimization:
         self.MIN_BATCH_SIZE = 16
         self.MAX_BATCH_SIZE = 256
         self.STEP = 1
+        # if MUL_WEIGHT is too large, the gradient will become too small,
+        # otherwise, the z_score calculate will be incorrect
+        self.MUL_WEIGHT = 100
 
         # if self.target == "individual":
         #     self.threshold = 0.05
@@ -911,7 +914,7 @@ class Optimization:
         minus = torch.sub(pred_true_loss, pred_false_loss)
         minus_relu = minus_relu + active_relu(minus)
 
-        pred_false = active(torch.mul(minus_relu, 100)).float()  # 500
+        pred_false = active(torch.mul(minus_relu, self.MUL_WEIGHT)).float()  # 500
 
         label_05 = torch.tensor([0.5 for l in truth_labels], device=pred_false.device).float()
         pred_if_false = torch.mul(torch.sub(pred_false, label_05), 2).float()
@@ -985,17 +988,25 @@ class Optimization:
         criterian = nn.BCELoss(reduction='mean')
 
         # acc_loss
-        labels = torch.tensor([[(l + 1) % 2, (l + 2) % 2] for l in orig_labels], device=device)
+        labels = torch.tensor([[(l + 1) % 2, (l + 2) % 2] for l in orig_labels], device=logits_overall.device)
         labels = labels.float()
         acc_loss = criterian(logits_overall, labels)  # acc_loss on predictions with editor and updated classifier
         # normalization
         # acc_loss = self.normalization(acc_loss, 0.3, 0.8)
 
+        default_device = logits_identity[0].device
+
         # bias_loss
-        label_1 = torch.tensor([[0, 1] for i in range(0, identity_num[0])], device=device).float()
-        label_0 = torch.tensor([[1, 0] for i in range(0, identity_num[0])], device=device).float()
-        label_1.to(device)
-        label_0.to(device)
+        label_1 = torch.tensor([[0, 1] for i in range(0, identity_num[0])], device=default_device,
+                               dtype=self.torch_dtype)
+        label_0 = torch.tensor([[1, 0] for i in range(0, identity_num[0])], device=default_device,
+                               dtype=self.torch_dtype)
+
+        # bias_loss
+        # label_1 = torch.tensor([[0, 1] for i in range(0, identity_num[0])], device=device).float()
+        # label_0 = torch.tensor([[1, 0] for i in range(0, identity_num[0])], device=device).float()
+        # label_1.to(device)
+        # label_0.to(device)
         # male
         pred_0_loss = torch.mean(criterian_each(logits_identity[0], label_0), 1)
         pred_1_loss = torch.mean(criterian_each(logits_identity[0], label_1), 1)
@@ -1057,7 +1068,8 @@ class Optimization:
         else:
             gamma = torch.tensor(gamma, device=device).float()
         bias_loss = torch.mul(bias_loss, gamma).float()
-        loss = torch.add(acc_loss, bias_loss)
+        # loss = torch.add(acc_loss, bias_loss)
+        loss = bias_loss
 
         return loss, acc_loss, bias_loss
 
@@ -1071,18 +1083,24 @@ class Optimization:
         active_relu = nn.ReLU()
         criterian = nn.BCELoss(reduction='mean')
 
+        default_device = logits_identity[0].device
+
         # acc_loss
-        labels = torch.tensor([[(l + 1) % 2, (l + 2) % 2] for l in orig_labels], device=device)
+        labels = torch.tensor([[(l + 1) % 2, (l + 2) % 2] for l in orig_labels], device=logits_overall.device)
         labels = labels.float()
         acc_loss = criterian(logits_overall, labels)  # acc_loss on predictions with editor and updated classifier
         # normalization
         # acc_loss = self.normalization(acc_loss, 0.3, 0.8)
 
         # bias_loss
-        label_1 = torch.tensor([[0, 1] for i in range(0, identity_num[0])], device=device).float()
-        label_0 = torch.tensor([[1, 0] for i in range(0, identity_num[0])], device=device).float()
-        label_1.to(device)
-        label_0.to(device)
+        # label_1 = torch.tensor([[0, 1] for i in range(0, identity_num[0])], device=default_device).float()
+        # label_0 = torch.tensor([[1, 0] for i in range(0, identity_num[0])], device=default_device).float()
+        # label_1.to(device)
+        # label_0.to(device)
+        label_1 = torch.tensor([[0, 1] for i in range(0, identity_num[0])], device=default_device,
+                               dtype=self.torch_dtype)
+        label_0 = torch.tensor([[1, 0] for i in range(0, identity_num[0])], device=default_device,
+                               dtype=self.torch_dtype)
         # male
         pred_0_loss = torch.mean(criterian_each(logits_identity[0], label_0), 1)
         pred_1_loss = torch.mean(criterian_each(logits_identity[0], label_1), 1)
@@ -1143,6 +1161,84 @@ class Optimization:
 
         return loss, acc_loss, bias_loss
 
+    def loss_function_sprt_group(self, orig_labels, orig_identity_lables, logits_overall, identity_num, show_identity_num,
+                                 MinValue, MaxValue, logits_identity, baseline_fur_train, all_lables, gamma):
+        """
+            INPUTS:
+                    orig_labels: ground-truth labels of dataset_identity_one_batch
+                    orig_identity_labels: ground_truth labels of each subgroup
+                    logits_overall: prediction logits for acc_loss calculation
+                    identity_num: the number of samples of dataset_one_batch['text'] for each identity
+                    show_identity_num: the number of identities shown in this batch
+                    MinValue: minimum value of z_score
+                    MaxValue: maximum value of z_score
+                    logits_identity: a list, prediction logits for each identity in dataset_identity_one_batch['text']
+                    baseline_fur_train: the baseline FUR
+            DIFFERENCE: no pre-processing (extract G_Positive withing loss function)
+            CALCULATION: MEAN(every|FNR_s - baseline_FUR|)
+        """
+        '''get logits device'''
+        default_device = logits_identity[0].device
+
+        criterian_each = nn.MSELoss(reduction='none')
+        active = nn.Sigmoid()
+        # active_relu = nn.ReLU()
+        # acc_loss = self.loss_function_cross_entropy_weight(logits_overall, orig_labels)
+
+        # print("-->orig_labels", orig_labels)
+        # print("-->logits_overall", logits_overall)
+
+        print("-->identity_num[0]", identity_num[0])
+        # bias_loss
+        label_1 = torch.tensor([[0, 1] for i in range(0, identity_num[0])], device=default_device,
+                               dtype=self.torch_dtype)
+        label_0 = torch.tensor([[1, 0] for i in range(0, identity_num[0])], device=default_device,
+                               dtype=self.torch_dtype)
+
+        # label_1 = torch.ones((identity_num[0], 2), device=default_device, dtype=self.torch_dtype)
+        # label_0 = torch.zeros((identity_num[0], 2), device=default_device, dtype=self.torch_dtype)
+
+        print("-->logits_identity[0]", logits_identity[0])
+        # male
+        pred_0_loss = torch.mean(criterian_each(logits_identity[0], label_0), 1)
+        pred_1_loss = torch.mean(criterian_each(logits_identity[0], label_1), 1)
+        minus = torch.sub(pred_0_loss, pred_1_loss)
+        pred_labels = active(torch.mul(minus, self.MUL_WEIGHT))  # 1 if predict label == 1  # float()
+        fu = torch.sum(pred_labels)
+
+        loss = fu
+
+        #
+        # # extract false positive predicted labels
+        # truth_labels = torch.tensor(orig_identity_labels[0], device=default_device, dtype=self.torch_dtype)
+        # fu_list = active_relu(torch.sub(truth_labels, pred_labels))  # 1 if false negative
+        # # if self.privileged_label == 1:  # FUR = FNR
+        # #     fu_list = active_relu(torch.sub(truth_labels, pred_labels))  # 1 if false negative
+        # # else:  # FUR = FPR (self.privileged_label = 0)
+        # #     fu_list = active_relu(torch.sub(pred_labels, truth_labels))  # 1 if false positive
+        # fu = torch.sum(fu_list)
+        #
+        # P = torch.sum(truth_labels == self.privileged_label)
+        # FUR = torch.div(fu, P)  # float()
+        # print("-->FUR:{}, FU:{}, P:{}".format(FUR, fu, P))
+        #
+        # baseline_fur_train = torch.tensor(baseline_fur_train, dtype=self.torch_dtype)
+        # baseline_fur_train.to(default_device)
+        # DIFF_overall = torch.abs(torch.sub(FUR, baseline_fur_train))
+        #
+        # # added
+        # # fu = torch.sum(pred_labels)
+        # # # FN_overall = fn
+        # # FUR = torch.div(fu, identity_num[0]).float()
+        # # print("-->FUR:{}, FU:{}, P:{}".format(FUR, fu, identity_num[0]))
+        # # baseline_fur_train = torch.tensor(baseline_fur_train, dtype=self.torch_dtype)
+        # # baseline_fur_train.to(default_device)
+        # # DIFF_overall = torch.abs(torch.sub(FUR, baseline_fur_train))
+        #
+        # loss = fu
+
+        return loss, loss, loss
+
     def loss_function_sprt_fur(self, orig_labels, orig_identity_labels, logits_overall, identity_num, show_identity_num,
                                MinValue, MaxValue, logits_identity,
                                baseline_fur_train, all_labels, gamma=None):
@@ -1186,16 +1282,26 @@ class Optimization:
         pred_0_loss = torch.mean(criterian_each(logits_identity[0], label_0), 1)
         pred_1_loss = torch.mean(criterian_each(logits_identity[0], label_1), 1)
         minus = torch.sub(pred_0_loss, pred_1_loss)
-        pred_labels = active(torch.mul(minus, 800))  # 1 if predict label == 1  # float()
+        pred_labels = active(torch.mul(minus, self.MUL_WEIGHT))  # 1 if predict label == 1  # float()
+
+        # # added
+        # fu = torch.sum(pred_labels)
+        # # FN_overall = fn
+        # FUR = torch.div(fu, identity_num[0]).float()
+        # print("-->FUR:{}, FU:{}, P:{}".format(FUR, fu, identity_num[0]))
+        # baseline_fur_train = torch.tensor(baseline_fur_train, dtype=self.torch_dtype)
+        # baseline_fur_train.to(default_device)
+        # DIFF_overall = torch.abs(torch.sub(FUR, baseline_fur_train))
 
         # extract false positive predicted labels
         truth_labels = torch.tensor(orig_identity_labels[0], device=default_device, dtype=self.torch_dtype)
+        # fu_list = active_relu(torch.sub(truth_labels, pred_labels))  # 1 if false negative
         if self.privileged_label == 1:  # FUR = FNR
             fu_list = active_relu(torch.sub(truth_labels, pred_labels))  # 1 if false negative
         else:  # FUR = FPR (self.privileged_label = 0)
             fu_list = active_relu(torch.sub(pred_labels, truth_labels))  # 1 if false positive
         fu = torch.sum(fu_list)
-
+        
         P = torch.sum(truth_labels == self.privileged_label)
         FUR = torch.div(fu, P)  # float()
         print("-->FUR:{}, FU:{}, P:{}".format(FUR, fu, P))
@@ -1212,15 +1318,21 @@ class Optimization:
                 continue
             label_1 = torch.tensor([[0, 1] for i in range(0, identity_num[i])], device=default_device, dtype=self.torch_dtype)
             label_0 = torch.tensor([[1, 0] for i in range(0, identity_num[i])], device=default_device, dtype=self.torch_dtype)
-            # label_1.to(logits.device)
-            # label_0.to(logits.device)
             pred_0_loss = torch.mean(criterian_each(logits, label_0), 1)
             pred_1_loss = torch.mean(criterian_each(logits, label_1), 1)
             minus = torch.sub(pred_0_loss, pred_1_loss)
-            pred_labels = active(torch.mul(minus, 800))  # float()  # 1 if predict label==1  # 500
+            pred_labels = active(torch.mul(minus, self.MUL_WEIGHT))  # float()  # 1 if predict label==1  # 500
+
+            # # added
+            # fu = torch.sum(pred_labels)
+            # FUR = torch.div(fu, identity_num[i]).float()
+            # print("-->FUR:{}, FU:{}, P:{}".format(FUR, fu, identity_num[i]))
+            # DIFF_overall = DIFF_overall + torch.abs(torch.sub(FUR, baseline_fur_train))
+
 
             # extract false positive predicted labels
             truth_labels = torch.tensor(orig_identity_labels[i], device=default_device, dtype=self.torch_dtype)
+            # fu_list = active_relu(torch.sub(truth_labels, pred_labels))  # 1 if false negative
             if self.privileged_label == 1:  # FUR = FNR
                 fu_list = active_relu(torch.sub(truth_labels, pred_labels))  # 1 if false negative
             else:  # FUR = FPR (self.privileged_label = 0)
@@ -1234,6 +1346,7 @@ class Optimization:
                 continue
             
             DIFF_overall = DIFF_overall + torch.abs(torch.sub(FUR, baseline_fur_train))
+
 
         # div not all identity_num but the identity_num shown
         print("-->show_identity_num", show_identity_num)
@@ -1254,10 +1367,10 @@ class Optimization:
             gamma = torch.tensor(self.gamma, device=default_device, dtype=self.torch_dtype)
         else:
             gamma = torch.tensor(gamma, device=default_device, dtype=self.torch_dtype)
-        print("-->bias_loss * gamma", bias_loss, gamma)
         bias_loss = torch.mul(bias_loss, gamma)
         print("-->bias_loss", bias_loss)
         loss = torch.add(acc_loss, bias_loss)
+        # loss = bias_loss
 
         return loss, acc_loss, bias_loss
 
@@ -2694,7 +2807,7 @@ class Optimization:
             test_fpr_metric = []
             test_fnr_all = []
             test_fnr_mean = []
-            test_fnr_diff = []
+            test_fnr_metric = []
 
         # Train the model 迭代训练
         fpr_epoch_train = None
@@ -2926,6 +3039,9 @@ class Optimization:
                     dataset_one_batch = dataset_identity.iloc[start_index: end_index]
                     orig_labels = dataset_one_batch['label'].values.tolist()
 
+                    # print("-->dataset_one_batch", dataset_one_batch)
+                    # print("-->orig_labels", orig_labels)
+
                     # group bias mitigation
                     ID = IdentityDetect()
                     # prediction on dataset_identity_one_batch with each identity subgroup
@@ -2952,7 +3068,7 @@ class Optimization:
                     else:
                         baseline_fur = fur_epoch_train
 
-                    # loss, acc_loss, bias_loss = self.loss_function_sprt_fpr(orig_labels, predict_logits, identity_num,
+                    # loss, acc_loss, bias_loss = self.loss_function_sprt_fpr1(orig_labels, predict_logits, identity_num,
                     #                                                         show_identity_num,
                     #                                                         MinValue, MaxValue, all_logits,
                     #                                                         baseline_fur, gamma)    # baseline_fpr_train
@@ -2961,9 +3077,20 @@ class Optimization:
                                                                              predict_logits, identity_num, show_identity_num,
                                                                              MinValue, MaxValue, all_logits,
                                                                              baseline_fur, all_labels, gamma)
+                    # loss, acc_loss, bias_loss = self.loss_function_sprt_group(orig_labels, orig_all_labels,
+                    #                                                         predict_logits, identity_num,
+                    #                                                         show_identity_num,
+                    #                                                         MinValue, MaxValue, all_logits,
+                    #                                                         baseline_fur, all_labels, gamma)
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
+
+                # # check
+                # print("-->check gradient")
+                # for name, param in model.named_parameters():
+                #     if param.requires_grad is not None:
+                #         print(name, param.grad)
 
                 # 打印训练信息和保存loss
                 loss_dict.append(loss.item())
@@ -2974,7 +3101,6 @@ class Optimization:
                                                                                              bias_loss.item()))
                 bias_loss_dict.append(bias_loss)
                 acc_loss_dict.append(acc_loss.item())
-
 
                 # new_weight = model.model[0].weight.clone()
                 # new_bias = model.model[0].bias.clone()
